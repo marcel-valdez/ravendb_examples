@@ -52,8 +52,8 @@ namespace MMO.Test
             Verify.That(target.BatallaTerminada).IsFalse().Now();
 
             // Act
-            target.JugadoresVivos[0].Hp = 0;
-            target.JugadoresVivos[1].Hp = 0;
+            target.Jugadores[0].Hp = 0;
+            target.Jugadores[1].Hp = 0;
 
             // Assert
             Verify.That(target.BatallaTerminada).IsTrue().Now();
