@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using Newtonsoft.Json;
+using Raven.Client;
 namespace MMO
 {
     /// <summary>
@@ -7,10 +9,19 @@ namespace MMO
     /// </summary>
     public class Arena
     {
+        private ICollection<RegistroDeAtaque> mLogDeAtaque;
+
+        [JsonIgnore]
+        private readonly List<Jugador> mJugadores;
+
+        /// <summary>
+        /// Inicializa una nueva instancia de <see cref="Arena" />.
+        /// </summary>
         public Arena()
         {
-            this.Jugadores = new List<Jugador>();
+            this.mJugadores = new List<Jugador>();
             this.LogDeAtaque = new List<RegistroDeAtaque>();
+            this.JugadoresIds = new List<string>();
         }
 
         /// <summary>
@@ -23,20 +34,30 @@ namespace MMO
             set;
         }
 
+        public List<string> JugadoresIds
+        {
+            get;
+            set;
+        }
+
         /// <summary>
         /// Son los jugadores que están actualmente en la Arena
         /// </summary>
         /// <value>Los jugadores en la Arena.</value>
-        public List<Jugador> Jugadores
+        [JsonIgnore]
+        public IEnumerable<Jugador> Jugadores
         {
-            get;
-            private set;
+            get
+            {
+                return mJugadores;
+            }
         }
 
         /// <summary>
         /// Son los jugadores que quedan vivos en la Arena.
         /// </summary>
         /// <value>Los jugadores vivos.</value>
+        [JsonIgnore]
         public Jugador[] JugadoresVivos
         {
             get
@@ -49,6 +70,7 @@ namespace MMO
         /// Determina si la batalla ha terminado.
         /// </summary>
         /// <value><c>true</c> si es una [batalla terminada]; sino, <c>false</c>.</value>
+        [JsonIgnore]
         public bool BatallaTerminada
         {
             get
@@ -61,10 +83,41 @@ namespace MMO
         /// Contiene los registros de ataques hechos por este jugador.
         /// </summary>
         /// <value>Los registros de ataque.</value>
-        public List<RegistroDeAtaque> LogDeAtaque
+        public ICollection<RegistroDeAtaque> LogDeAtaque
         {
-            get;
-            private set;
+            get
+            {
+                return mLogDeAtaque;
+            }
+
+            set
+            {
+                mLogDeAtaque = value;
+            }
+        }
+
+        /// <summary>
+        /// Hidrata esta arena con los ids de jugadores que ya tiene.
+        /// </summary>
+        /// <param name="sesion">La sesion.</param>
+        public void Hidratar(IDocumentSession sesion)
+        {
+            this.mJugadores.Clear();
+            this.mJugadores.AddRange(sesion.Load<Jugador>(this.JugadoresIds));            
+        }
+
+        /// <summary>
+        /// Agrega un jugador a la lista de participantes en esta arena
+        /// </summary>
+        /// <param name="jugadores">Los jugadores.</param>
+        public void AgregarJugador(params Jugador[] jugadores)
+        {
+            foreach (var jugador in jugadores)
+            {
+                this.mJugadores.Add(jugador);
+                this.JugadoresIds.Add(jugador.Id);
+                jugador.Batallas.Add(this.Id);
+            }
         }
     }
 }

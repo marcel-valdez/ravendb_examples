@@ -1,6 +1,6 @@
 ﻿namespace MMO
 {
-    public class RegistroDeAtaque
+    public struct RegistroDeAtaque
     {
         /// <summary>
         /// El Id de la victima atacada.       

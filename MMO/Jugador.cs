@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace MMO
 {
@@ -16,6 +17,7 @@ namespace MMO
         public Jugador()
         {
             this.Estadisticas = new StatsGlobales();
+            this.Batallas = new List<string>();
         }
 
         /// <summary>
@@ -40,8 +42,10 @@ namespace MMO
 
         /// <summary>
         /// Representa los puntos de vida del jugador.
-        /// </summary>
-        /// <value>Los puntos de vida, un número mayor o igual a 0.</value>
+        /// Dado que esta propiedad sólo es válida mientras ocurre una batalla,
+        /// y no se requiere que se persista, con el atributo JsonIgnore, se le
+        /// informa RavenDb que no se requiere que la persista en la BD.
+        /// </summary>        
         public int Hp
         {
             get;
@@ -103,6 +107,7 @@ namespace MMO
         /// Obtiene un booleano que indica si esta jugador [esta vivo].
         /// </summary>
         /// <value><c>true</c> si [esta vivo]; sino, <c>false</c>.</value>
+        [JsonIgnore]
         public bool EstaVivo
         {
             get
@@ -120,6 +125,16 @@ namespace MMO
             get;
             private set;
         }
+
+        /// <summary>
+        /// La lista de batallas en las que ha participado este jugador.
+        /// </summary>
+        public List<string> Batallas
+        {
+            get;
+            private set;
+        }
+
 
         /// <summary>
         /// Regresa un string JSON que representa esta instancia. (Sin incluir logs de ataque)

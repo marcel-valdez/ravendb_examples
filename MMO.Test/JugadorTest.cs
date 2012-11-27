@@ -20,6 +20,7 @@ namespace MMO.Test
             // Assert                        
             Verify.That(target.Nombre).IsNull().Now();
             Verify.That(target.Estadisticas).IsNotNull().Now();
+            Verify.That(target.Batallas).IsNotNull().Now();
         }
 
         [TestAttribute]
@@ -64,7 +65,7 @@ namespace MMO.Test
             RegistroDeAtaque ataque = agresor.Ataca(victima);            
 
             // Assert                        
-            Verify.That(ataque).IsNotNull().Now();            
+            //Verify.That(ataque).IsNotNull().Now();            
             Verify.That(ataque.Dano).IsEqualTo(100 - victima.Hp).Now();
             Verify.That(ataque.VictimaId).IsEqualTo(victima.Id).Now();
             Verify.That(ataque.AgresorId).IsEqualTo(agresor.Id).Now();

@@ -109,3 +109,5 @@ UpgradeLog*.XML
 
 # Nano temporary files
 *~
+
+server/Database

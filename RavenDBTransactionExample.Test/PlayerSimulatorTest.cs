@@ -1,10 +1,12 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using MMO;
 using NUnit.Framework;
 using Raven.Client;
 using Raven.Client.Document;
 using Raven.Client.Embedded;
+using Raven.Database.Server;
 using TestingTools.Core;
 using TestingTools.Extensions;
 
@@ -20,8 +22,8 @@ namespace RavenDBTransactionExample.Test
         [TestAttribute]
         public void TestIfItInitializesCorrectly()
         {
-            using (var dstore = GetDocumentStore())
-            using (IDocumentSession session = dstore.OpenSession())
+            using (IDocumentStore dstore = GetDocumentStore())
+            using (IDocumentSession session = dstore.OpenSession("test"))
             {
                 // Arrange
                 PlayerSimulator target;
@@ -40,9 +42,6 @@ namespace RavenDBTransactionExample.Test
 
                 // Reset
             }
-
-            // Reset
-            ClearDocumentStore();
         }
 
         /// <summary>
@@ -52,126 +51,179 @@ namespace RavenDBTransactionExample.Test
         public void TestIfItAttacksAPlayerUntilDeath()
         {
             using (var dstore = GetDocumentStore())
-            using (IDocumentSession session = dstore.OpenSession())
             {
-                // Arrange
-                Arena arena = new Arena();
-                Jugador jugador = new Jugador()
+                ClearDocumentStore(dstore);
+                // Arrange                
+                Jugador agresor = new Jugador()
                 {
                     Hp = 100
                 };
+
                 Jugador victima = new Jugador()
                 {
                     Hp = 100
                 };
-                arena.Jugadores.AddRange(new[] { jugador, victima });
-                PlayerSimulator target = new PlayerSimulator(jugador)
+                Arena arena = new Arena()
                 {
-                    Arena = arena,
-                    Session = session
+                    Id = "arena"
                 };
 
-                // Act
-                target.SimularAsync(frequency: 10).Wait(2000);
-
-                // Assert
-                Verify.That(arena.BatallaTerminada).IsTrue().Now();
-                Verify.That(victima.EstaVivo).IsFalse().Now();
-                Verify.That(jugador.EstaVivo).IsTrue().Now();
-                Verify.That(jugador.Hp).IsEqualTo(100).Now();
-                Verify.That(arena.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
-            }
-
-            // Reset
-            ClearDocumentStore();
-        }
-
-        [TestAttribute]
-        public void TestIfItRegistersTransactionsInTheDocumentStore()
-        {
-            // Arrange
-            Arena stored = null;
-            using (DocumentStore dstore = GetDocumentStore())
-            {
-                using (IDocumentSession sesion = dstore.OpenSession())
+                using (IDocumentSession session = dstore.OpenSession("test"))
                 {
-                    PlayerSimulator simulator = ArrangeSimulation(sesion).First();
+                    session.Store(agresor);
+                    session.Store(victima);
+                    arena.AgregarJugador(agresor, victima);
+                    session.Store(arena);
+                    session.SaveChanges();
 
-                    // Act
-                    simulator.SimularAsync(10).Wait(1000);                    
-                }
-
-                using (IDocumentSession sesion = dstore.OpenSession())
-                {
-                    // Assert
-                    stored = sesion.Query<Arena>()
-                                   .Customize(q => q.WaitForNonStaleResults())
-                                   .First();
-                }
-            }
-
-            Verify.That(stored).IsNotNull().Now();
-            Verify.That(stored.LogDeAtaque.Count).IsGreaterThan(2).Now();
-            Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
-
-            // Reset
-            ClearDocumentStore();
-        }
-
-        private static IEnumerable<PlayerSimulator> ArrangeSimulation(IDocumentSession session, int total = 2, int agresors = 1)
-        {
-            int agresorCounter = 0;
-            List<PlayerSimulator> results = new List<PlayerSimulator>();
-            // Arrange
-            Arena arena = new Arena();
-            for (int i = 0; i < total; i++)
-            {
-                string type = agresorCounter++ < agresors ? "agresor" : "victima";
-                arena.Jugadores.Add(new Jugador()
-                {
-                    Id = type + agresorCounter,
-                    Hp = 100
-                });
-
-                if (type == "agresor")
-                {
-                    PlayerSimulator target = new PlayerSimulator(arena.Jugadores[0])
+                    PlayerSimulator target = new PlayerSimulator(agresor)
                     {
                         Arena = arena,
                         Session = session
                     };
 
-                    results.Add(target);
+                    // Act
+                    target.SimularAsync(frequency: 0).Wait();
+
+                    // Assert
+                    Verify.That(arena.BatallaTerminada).IsTrue().Now();
+                    Verify.That(victima.EstaVivo).IsFalse().Now();
+                    Verify.That(agresor.EstaVivo).IsTrue().Now();
+                    Verify.That(agresor.Hp).IsEqualTo(100).Now();
+                    Verify.That(victima.Hp).IsEqualTo(0).Now();
+                    Verify.That(agresor.Estadisticas.DanoCausado).IsEqualTo(100).Now();
+                    Verify.That(victima.Estadisticas.DanoRecibido).IsEqualTo(100).Now();
+                    Verify.That(arena.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
                 }
-
-                session.Store(arena.Jugadores[i]);
-                session.SaveChanges();
             }
-
-            session.Store(arena);
-            session.SaveChanges();
-
-            return results;
         }
 
-        private static DocumentStore GetDocumentStore()
+        // Caso base
+        [TestCase(2, 1)]
+        // Caso simple con más de 1 agresor.
+        [TestCase(3, 2)]
+        // Caso donde todos son agresores
+        [TestCase(2, 2)]
+        // Caso límite para procesador 8 cores
+        [TestCase(4, 4)]
+        public void TestIfItRegistersTransactionsInTheDocumentStore(int totalJugadores, int totalAgresores)
         {
-            var documentStore = new EmbeddableDocumentStore
+            // Arrange
+            Arena storedArena = null;
+            Jugador[] jugadores = null;
+            using (IDocumentStore dstore = GetDocumentStore())
             {
-                RunInMemory = true,
-            };
+                ClearDocumentStore(dstore);
+                List<Task> tasks = new List<Task>();
+                foreach (PlayerSimulator simulator in ArrangeSimulation(dstore, totalJugadores, totalAgresores))
+                {
+                    // Act                        
+                    tasks.Add(simulator.SimularAsync(100).ContinueWith(t => simulator.Session.Dispose()));
+                }
 
-            documentStore.Conventions.MaxNumberOfRequestsPerSession = 1000;
+                Task.WaitAll(tasks.ToArray());
 
-            documentStore.Initialize();
+
+                using (IDocumentSession sesion = dstore.OpenSession("test"))
+                {                                    
+                    jugadores = sesion.Query<Jugador>()
+                                   .Customize(q => q.WaitForNonStaleResults())
+                                   .ToArray();
+
+                    storedArena = sesion.Load<Arena>("arena");
+
+                    // Assert
+                    Verify.That(storedArena).IsNotNull().Now();
+                    Verify.That(storedArena.LogDeAtaque.Count).IsGreaterThanOrEqual((totalJugadores - 1) * 2).Now();
+                    Verify.That(storedArena.LogDeAtaque.Sum(log => log.Dano)).IsGreaterThanOrEqual((totalJugadores - 1) * 100).Now();
+
+                    string playerState = jugadores.Select(j => j.ToString()).Aggregate((acum, item) => acum + "\n" + item);
+
+                    Verify.That(jugadores.Length).IsEqualTo(totalJugadores, playerState).Now();
+                    Verify.That(jugadores.Sum(j => j.Estadisticas.DanoCausado)).IsGreaterThanOrEqual((totalJugadores - 1) * 100, playerState).Now();
+                    Verify.That(jugadores.Sum(j => j.Estadisticas.JugadoresMatados)).IsGreaterThanOrEqual(totalJugadores - 1, playerState).Now();
+                    Verify.That(jugadores.Sum(j => j.Estadisticas.DanoCausado)).IsEqualTo(jugadores.Sum(j => j.Estadisticas.DanoRecibido), playerState).Now();
+                    Verify.That(jugadores.Sum(j => j.Estadisticas.JugadoresMatados)).IsEqualTo(jugadores.Sum(j => j.Estadisticas.Muertes), playerState).Now();
+                    Verify.That(jugadores).IsTrueForAll(j => j.Batallas.IndexOf(storedArena.Id) != -1, playerState).Now();
+                }
+            }
+        }
+
+        private static IEnumerable<PlayerSimulator> ArrangeSimulation(IDocumentStore dstore, int total = 2, int agresors = 1)
+        {
+            int agresorCounter = 0;
+            List<PlayerSimulator> simulaciones = new List<PlayerSimulator>();
+            List<Jugador> jugadores = new List<Jugador>();
+            using (var sesion = dstore.OpenSession("test"))
+            {
+                // Arrange
+                Arena arena = new Arena()
+                {
+                    Id = "arena"
+                };
+
+                sesion.Store(arena);                
+
+                for (int i = 0; i < total; i++)
+                {
+                    string type = agresorCounter++ < agresors ? "agresor" : "victima";
+                    var nuevoJugador = new Jugador()
+                                    {
+                                        Id = type + agresorCounter,
+                                        Hp = 100
+                                    };
+                    sesion.Store(nuevoJugador);                    
+                    arena.AgregarJugador(nuevoJugador);
+                    sesion.SaveChanges();
+                    jugadores.Add(nuevoJugador);
+                }
+            }
+
+            foreach (Jugador jugador in jugadores)
+            {
+                if (jugador.Id.Contains("agresor"))
+                {
+                    IDocumentSession sesionDeSimulacion = dstore.OpenSession("test");
+                    sesionDeSimulacion.Advanced.UseOptimisticConcurrency = true;
+                    Arena arenaDeSimulacion = sesionDeSimulacion.Load<Arena>("arena");
+                    Jugador jugadorEnSimulacion = sesionDeSimulacion.Load<Jugador>(jugador.Id);
+                    PlayerSimulator target = new PlayerSimulator(jugadorEnSimulacion)
+                    {
+                        Arena = arenaDeSimulacion,
+                        Session = sesionDeSimulacion
+                    };
+
+                    simulaciones.Add(target);
+                }
+            }
+
+            return simulaciones;
+        }
+
+        private static IDocumentStore GetDocumentStore()
+        {
+            //NonAdminHttp.EnsureCanListenToWhenInNonAdminContext(82);
+            //var documentStore = new EmbeddableDocumentStore
+            //{
+            //    RunInMemory = true,
+            //    UseEmbeddedHttpServer = true,                
+            //};
+            //documentStore.Configuration.Port = 82;
+            
+            var documentStore = new DocumentStore
+                       {   // Se especifica la conexión HTTP (REST)
+                           Url = "http://localhost:81"
+                       }.Initialize();
+
+            documentStore.Conventions.MaxNumberOfRequestsPerSession = 100;
+
 
             return documentStore;
         }
 
-        private static void ClearDocumentStore()
+        private static void ClearDocumentStore(IDocumentStore dstore)
         {
-            using (var dstore = GetDocumentStore())
-            using (var session = dstore.OpenSession())
+            using (var session = dstore.OpenSession("test"))
             {
                 var jugadores = (from jugador in session.Query<Jugador>()
                                  select jugador).ToArray();
@@ -190,6 +242,11 @@ namespace RavenDBTransactionExample.Test
                 }
 
                 session.SaveChanges();
+                // Esperar a que se efectúen todos los cambios
+                session.Query<Arena>()
+                       .Customize(q => q.WaitForNonStaleResults()).ToArray();
+                session.Query<Jugador>()
+                       .Customize(q => q.WaitForNonStaleResults()).ToArray();
             }
         }
     }
