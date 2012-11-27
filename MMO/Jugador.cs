@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+
 namespace MMO
 {
     /// <summary>
@@ -8,6 +10,34 @@ namespace MMO
     {
         private readonly static Random random = new Random((int)DateTime.Now.ToBinary());
 
+        /// <summary>
+        /// Inicializa una nueva instancia de la clase <see cref="Jugador" />.
+        /// </summary>
+        public Jugador()
+        {
+            this.LogDeAtaque = new List<RegistroDeAtaque>();
+            this.LogDeDano = new List<RegistroDeDano>();
+        }
+
+        /// <summary>
+        /// Contiene los registros de ataques hechos por este jugador.
+        /// </summary>
+        /// <value>Los registros de ataque.</value>
+        public List<RegistroDeAtaque> LogDeAtaque
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
+        /// Contiene los registros de daño recibido por este jugador.
+        /// </summary>
+        /// <value>Los registros de daño recibido.</value>
+        public List<RegistroDeDano> LogDeDano
+        {
+            get;
+            set;
+        }
         /// <summary>
         /// El Id del documento para el jugador. RavenDb lo asigna automáticamente.
         /// </summary>
@@ -39,18 +69,57 @@ namespace MMO
         }
 
         /// <summary>
-        /// Attacks the specified victim.
+        /// Ataca a la victima especificada.
         /// </summary>
-        /// <param name="victim">The victim.</param>
-        public void Attack(Jugador victim)
+        /// <param name="victima">La victima.</param>
+        public void Ataca(Jugador victima)
         {
-            int damage = random.Next(1, 21);
-            victim.Hp -= damage;
+            int fuerza = random.Next(2, 21);
+            int dano = victima.RecibeAtaque(this, fuerza);
+            this.LogDeAtaque.Add(new RegistroDeAtaque()
+            {
+                VictimaId = victima.Id,
+                Dano = dano
+            });
         }
 
+        /// <summary>
+        /// Recibe el ataque del agresor, disminuye el dano con el 'escudo'.
+        /// </summary>
+        /// <param name="agresor">El agresor que golpea a este jugador.</param>
+        /// <returns>El dano real causado por el agresor.</returns>
+        protected int RecibeAtaque(Jugador agresor, int fuerza)
+        {
+            // Puede bloquear hasta 50% del dano.
+            double escudo = random.NextDouble() * .5;
+            int dano = (int)(fuerza * escudo);
+            
+            this.Hp -= dano;
+
+            this.LogDeDano.Add(new RegistroDeDano()
+            {
+                AggresorId = agresor.Id,
+                Dano = dano
+            });
+
+            return dano;
+        }
+
+        public bool EstaVivo
+        {
+            get
+            {
+                return this.Hp > 0;
+            }
+        }
+
+        /// <summary>
+        /// Regresa un string JSON que representa esta instancia. (Sin incluir logs de ataque)
+        /// </summary>
+        /// <returns>A <see cref="System.String" /> that represents this instance.</returns>
         public override string ToString()
         {
-            return string.Format("Jugador {{ id:'{0}', nombre:'{1}', hp:{2} }}", Id, Nombre, Hp);
+            return string.Format("{{ Id:'{0}', Nombre:'{1}', Hp:{2} }}", Id, Nombre, Hp);
         }
     }
 }
