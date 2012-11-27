@@ -90,17 +90,22 @@ namespace RavenDBTransactionExample.Test
         public void TestIfItRegistersTransactionsInTheDocumentStore()
         {
             // Arrange
-            PlayerSimulator simulator = ArrangeSimulation().First();
-
-            // Act
-            simulator.SimularAsync(10).Wait(1000);
-
             Arena stored = null;
             using (DocumentStore dstore = GetDocumentStore())
-            using (IDocumentSession session = dstore.OpenSession())
             {
-                // Assert
-                stored = session.Query<Arena>().First();
+                using (IDocumentSession sesion = dstore.OpenSession())
+                {
+                    PlayerSimulator simulator = ArrangeSimulation(sesion).First();
+
+                    // Act
+                    simulator.SimularAsync(10).Wait(1000);
+                }
+
+                using (IDocumentSession sesion = dstore.OpenSession())
+                {
+                    // Assert
+                    stored = sesion.Query<Arena>().First();
+                }
             }
 
             Verify.That(stored).IsNotNull().Now();
@@ -109,13 +114,11 @@ namespace RavenDBTransactionExample.Test
 
             // Reset
             ClearDocumentStore();
-        }        
-       
-        private static IEnumerable<PlayerSimulator> ArrangeSimulation(int total = 2, int agresors = 1)
+        }
+
+        private static IEnumerable<PlayerSimulator> ArrangeSimulation(IDocumentSession session, int total = 2, int agresors = 1)
         {
             int agresorCounter = 0;
-            using (DocumentStore dstore = GetDocumentStore())
-            using (IDocumentSession session = dstore.OpenSession())
             {
                 // Arrange
                 Arena arena = new Arena();
@@ -142,7 +145,7 @@ namespace RavenDBTransactionExample.Test
                     session.Store(arena.Jugadores[i]);
                     session.SaveChanges();
                 }
-                                
+
                 session.Store(arena);
                 session.SaveChanges();
             }
