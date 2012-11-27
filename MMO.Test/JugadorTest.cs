@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using NUnit.Framework;
 using TestingTools.Core;
 using TestingTools.Extensions;
@@ -18,9 +17,7 @@ namespace MMO.Test
             // Act
             target = new Jugador();
 
-            // Assert
-            Verify.That<List<RegistroDeAtaque>>(target.LogDeAtaque).IsNotNull().Now();
-            Verify.That<List<RegistroDeDano>>(target.LogDeDano).IsNotNull().Now();
+            // Assert                        
             Verify.That(target.Nombre).IsNull().Now();
         }
 
@@ -63,22 +60,14 @@ namespace MMO.Test
             };
 
             // Act
-            agresor.Ataca(victima);
+            RegistroDeAtaque ataque = agresor.Ataca(victima);
             
 
-            // Assert
-            Verify.That(agresor.LogDeAtaque.Count).IsEqualTo(1).Now();
-            Verify.That(victima.LogDeDano.Count).IsEqualTo(1).Now();
-
-            RegistroDeAtaque ataque = agresor.LogDeAtaque[0];
-            RegistroDeDano dano = victima.LogDeDano[0];
-
-            Verify.That(ataque).IsNotNull().Now();
-            Verify.That(dano).IsNotNull().Now();
-
-            Verify.That(ataque.Dano).IsEqualTo(dano.Dano).Now();
+            // Assert                        
+            Verify.That(ataque).IsNotNull().Now();            
+            Verify.That(ataque.Dano).IsEqualTo(100 - victima.Hp).Now();
             Verify.That(ataque.VictimaId).IsEqualTo(victima.Id).Now();
-            Verify.That(dano.AggresorId).IsEqualTo(agresor.Id).Now();
+            Verify.That(ataque.AgresorId).IsEqualTo(agresor.Id).Now();
         }
 
         [TestAttribute]

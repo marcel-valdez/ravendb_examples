@@ -10,6 +10,7 @@ namespace MMO
         public Arena()
         {
             this.Jugadores = new List<Jugador>();
+            this.LogDeAtaque = new List<RegistroDeAtaque>();
         }
 
         /// <summary>
@@ -44,6 +45,16 @@ namespace MMO
             {
                 return this.JugadoresVivos.Length <= 1;
             }
+        }
+
+        /// <summary>
+        /// Contiene los registros de ataques hechos por este jugador.
+        /// </summary>
+        /// <value>Los registros de ataque.</value>
+        public List<RegistroDeAtaque> LogDeAtaque
+        {
+            get;
+            set;
         }
     }
 }

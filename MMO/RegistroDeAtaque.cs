@@ -13,6 +13,16 @@
         }
 
         /// <summary>
+        /// Es el Id del agresor.
+        /// </summary>
+        /// <value>El Id del agresor.</value>
+        public string AgresorId
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Es el dano provocado a la victima.
         /// </summary>
         /// <value>El dano provocado.</value>

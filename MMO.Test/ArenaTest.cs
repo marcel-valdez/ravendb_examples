@@ -19,6 +19,7 @@ namespace MMO.Test
 
             // Assert
             Verify.That<List<Jugador>>(target.Jugadores).IsNotNull().Now();
+            Verify.That<List<RegistroDeAtaque>>(target.LogDeAtaque).IsNotNull().Now();
         }
 
         [TestAttribute]

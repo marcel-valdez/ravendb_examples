@@ -1,19 +1,11 @@
-﻿// ***********************************************************************
-// Assembly         : RavenDbTransactionsExample
-// Author           : Marcel
-// Created          : 11-27-2012
-//
-// Last Modified By : Marcel
-// Last Modified On : 11-27-2012
-// ***********************************************************************
-// <copyright file="PlayerSimulator.cs" company="Marcel Valdez">
-//     Marcel Valdez. All rights reserved.
-// </copyright>
-// ***********************************************************************
-using Raven.Client.Document;
+﻿using System;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
 using MMO;
+using Raven.Client;
 
-namespace RavenDBTransactionExample.Test
+namespace RavenDBTransactionExample
 {
     /// <summary>
     /// Esta clase se encarga de simular que alguien esta utilizando un dado jugador.
@@ -22,6 +14,8 @@ namespace RavenDBTransactionExample.Test
     /// </summary>
     public class PlayerSimulator
     {
+        private static readonly Random random = new Random((int)DateTime.Now.ToBinary());
+
         /// <summary>
         /// El jugador utilizar en la simulación aleatoria.
         /// </summary>
@@ -36,6 +30,10 @@ namespace RavenDBTransactionExample.Test
             this.mJugador = jugador;
         }
 
+        /// <summary>
+        /// Es el jugador que este simulador utilizará para atacar
+        /// a sus contrincantes.
+        /// </summary>        
         public Jugador Jugador
         {
             get
@@ -44,16 +42,45 @@ namespace RavenDBTransactionExample.Test
             }
         }
 
+        /// <summary>
+        /// Es el arena donde ocurre la pelea.
+        /// </summary>        
         public Arena Arena
         {
             get;
             set;
         }
 
-        public DocumentStore DocumentStore
+        /// <summary>
+        /// Establece la sesión base de datos donde se persistirán los cambios
+        /// por cada ataque (transacción)
+        /// </summary>        
+        public IDocumentSession Session
         {
             get;
             set;
+        }
+
+        /// <summary>
+        /// Simula que pelea, atacando con una frecuencia determinara en milisegundos.
+        /// </summary>
+        /// <param name="frequency">La frecuencia con la que ataca este jugador en milisegundos..</param>        
+        public async Task SimularAsync(int frequency)
+        {
+            do
+            {
+                Thread.Sleep(frequency);
+                Jugador[] otros = this.Arena.JugadoresVivos
+                                            .Where(jugador => jugador != this.Jugador)
+                                            .ToArray();
+                if (otros.Length > 0)
+                {
+                    int victimaIndex = random.Next(0, otros.Length);
+                    // Inicia transaccion
+                    this.Arena.LogDeAtaque.Add(this.Jugador.Ataca(otros[victimaIndex]));
+                    // Termina transaccion
+                }
+            } while (this.Jugador.EstaVivo && !this.Arena.BatallaTerminada);
         }
     }
 }

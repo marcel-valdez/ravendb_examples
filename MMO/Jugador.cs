@@ -15,29 +15,8 @@ namespace MMO
         /// </summary>
         public Jugador()
         {
-            this.LogDeAtaque = new List<RegistroDeAtaque>();
-            this.LogDeDano = new List<RegistroDeDano>();
         }
 
-        /// <summary>
-        /// Contiene los registros de ataques hechos por este jugador.
-        /// </summary>
-        /// <value>Los registros de ataque.</value>
-        public List<RegistroDeAtaque> LogDeAtaque
-        {
-            get;
-            set;
-        }
-
-        /// <summary>
-        /// Contiene los registros de daño recibido por este jugador.
-        /// </summary>
-        /// <value>Los registros de daño recibido.</value>
-        public List<RegistroDeDano> LogDeDano
-        {
-            get;
-            set;
-        }
         /// <summary>
         /// El Id del documento para el jugador. RavenDb lo asigna automáticamente.
         /// </summary>
@@ -72,15 +51,16 @@ namespace MMO
         /// Ataca a la victima especificada.
         /// </summary>
         /// <param name="victima">La victima.</param>
-        public void Ataca(Jugador victima)
+        public RegistroDeAtaque Ataca(Jugador victima)
         {
             int fuerza = random.Next(1, 21);
-            int dano = victima.RecibeAtaque(this, fuerza);
-            this.LogDeAtaque.Add(new RegistroDeAtaque()
+            int dano = victima.RecibeAtaque(fuerza);
+            return new RegistroDeAtaque()
             {
                 VictimaId = victima.Id,
+                AgresorId = this.Id,
                 Dano = dano
-            });
+            };
         }
 
         /// <summary>
@@ -88,7 +68,7 @@ namespace MMO
         /// </summary>
         /// <param name="agresor">El agresor que golpea a este jugador.</param>
         /// <returns>El dano real causado por el agresor.</returns>
-        protected int RecibeAtaque(Jugador agresor, int fuerza)
+        protected int RecibeAtaque(int fuerza)
         {
             // Puede bloquear hasta 50% del dano.
             double escudo = random.NextDouble() * .5;
@@ -96,13 +76,7 @@ namespace MMO
 
             dano = dano > this.Hp ? this.Hp : dano;
 
-            this.Hp -= dano;
-
-            this.LogDeDano.Add(new RegistroDeDano()
-            {
-                AggresorId = agresor.Id,
-                Dano = dano
-            });
+            this.Hp -= dano;            
 
             return dano;
         }
