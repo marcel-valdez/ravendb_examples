@@ -14,6 +14,16 @@ namespace MMO
         }
 
         /// <summary>
+        /// Es el Id que identifica a esta Arena, se permite que
+        /// RavenDb lo genere automáticamente.
+        /// </summary>        
+        public string Id
+        {
+            get;
+            set;
+        }
+
+        /// <summary>
         /// Son los jugadores que están actualmente en la Arena
         /// </summary>
         /// <value>Los jugadores en la Arena.</value>
@@ -54,7 +64,7 @@ namespace MMO
         public List<RegistroDeAtaque> LogDeAtaque
         {
             get;
-            set;
+            private set;
         }
     }
 }

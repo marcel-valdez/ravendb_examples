@@ -15,6 +15,7 @@ namespace MMO
         /// </summary>
         public Jugador()
         {
+            this.Estadisticas = new StatsGlobales();
         }
 
         /// <summary>
@@ -52,9 +53,18 @@ namespace MMO
         /// </summary>
         /// <param name="victima">La victima.</param>
         public RegistroDeAtaque Ataca(Jugador victima)
-        {
+        {            
+            int hpPrevio = victima.Hp;
             int fuerza = random.Next(1, 21);
             int dano = victima.RecibeAtaque(fuerza);
+            this.Estadisticas.DanoCausado += dano;
+            // Si este jugador mato al otro.
+            if (hpPrevio > 0 && hpPrevio == dano)
+            {
+                // Incrementar sus estadísticas
+                this.Estadisticas.JugadoresMatados++;
+            }
+
             return new RegistroDeAtaque()
             {
                 VictimaId = victima.Id,
@@ -70,14 +80,22 @@ namespace MMO
         /// <returns>El dano real causado por el agresor.</returns>
         protected int RecibeAtaque(int fuerza)
         {
+            int hpPrevio = this.Hp;
             // Puede bloquear hasta 50% del dano.
             double escudo = random.NextDouble() * .5;
             int dano = (int)Math.Ceiling(fuerza * escudo);
 
             dano = dano > this.Hp ? this.Hp : dano;
 
-            this.Hp -= dano;            
+            this.Hp -= dano;
 
+            this.Estadisticas.DanoRecibido += dano;
+
+            if (hpPrevio > 0 && !this.EstaVivo)
+            {
+                this.Estadisticas.Muertes++;
+            }
+            
             return dano;
         }
 
@@ -91,6 +109,16 @@ namespace MMO
             {
                 return this.Hp > 0;
             }
+        }
+
+        /// <summary>
+        /// Son las estadísticas globales de este jugador en todas sus
+        /// batallas.
+        /// </summary>        
+        public StatsGlobales Estadisticas
+        {
+            get;
+            private set;
         }
 
         /// <summary>

@@ -1,11 +1,12 @@
-﻿using MMO;
+﻿using System.Collections.Generic;
+using System.Linq;
+using MMO;
 using NUnit.Framework;
 using Raven.Client;
 using Raven.Client.Document;
 using Raven.Client.Embedded;
 using TestingTools.Core;
 using TestingTools.Extensions;
-using System.Linq;
 
 namespace RavenDBTransactionExample.Test
 {
@@ -40,6 +41,8 @@ namespace RavenDBTransactionExample.Test
                 // Reset
             }
 
+            // Reset
+            ClearDocumentStore();
         }
 
         /// <summary>
@@ -78,32 +81,67 @@ namespace RavenDBTransactionExample.Test
                 Verify.That(jugador.Hp).IsEqualTo(100).Now();
                 Verify.That(arena.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
             }
+
+            // Reset
+            ClearDocumentStore();
         }
 
         [TestAttribute]
         public void TestIfItRegistersTransactionsInTheDocumentStore()
         {
+            // Arrange
+            PlayerSimulator simulator = ArrangeSimulation().First();
+
+            // Act
+            simulator.SimularAsync(10).Wait(1000);
+
+            using (DocumentStore dstore = GetDocumentStore())
+            using (IDocumentSession session = dstore.OpenSession())
+            {
+                // Assert
+                Arena stored = session.Query<Arena>().First();
+                Verify.That(stored.LogDeAtaque.Count).IsGreaterThan(2).Now();
+                Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100);
+            }
+
+            // Reset
+            ClearDocumentStore();
+        }        
+       
+        private static IEnumerable<PlayerSimulator> ArrangeSimulation(int total = 2, int agresors = 1)
+        {
+            int agresorCounter = 0;
             using (DocumentStore dstore = GetDocumentStore())
             using (IDocumentSession session = dstore.OpenSession())
             {
                 // Arrange
                 Arena arena = new Arena();
-                arena.Jugadores.AddRange(new[] { 
-                    new Jugador() { Id = "agresor", Hp = 100 }, 
-                    new Jugador() { Id = "victima", Hp = 100 } 
-                });
-
-                PlayerSimulator target = new PlayerSimulator(arena.Jugadores[0])
+                for (int i = 0; i < total; i++)
                 {
-                    Arena = arena,
-                    Session = session
-                };
+                    string type = agresorCounter++ < agresors ? "agresor" : "victima";
+                    arena.Jugadores.Add(new Jugador()
+                    {
+                        Id = type + agresorCounter,
+                        Hp = 100
+                    });
 
-                // Act
-                target.SimularAsync(frequency: 10).Wait(2000);
+                    if (type == "agresor")
+                    {
+                        PlayerSimulator target = new PlayerSimulator(arena.Jugadores[0])
+                        {
+                            Arena = arena,
+                            Session = session
+                        };
 
-                // Assert
-                
+                        yield return target;
+                    }
+
+                    session.Store(arena.Jugadores[i]);
+                    session.SaveChanges();
+                }
+                                
+                session.Store(arena);
+                session.SaveChanges();
             }
         }
 
@@ -117,6 +155,31 @@ namespace RavenDBTransactionExample.Test
             documentStore.Initialize();
 
             return documentStore;
+        }
+
+        private static void ClearDocumentStore()
+        {
+            using (var dstore = GetDocumentStore())
+            using (var session = dstore.OpenSession())
+            {
+                var jugadores = (from jugador in session.Query<Jugador>()
+                                 select jugador).ToArray();
+
+                foreach (var jugador in jugadores)
+                {
+                    session.Delete<Jugador>(jugador);
+                }
+
+                var arenas = (from arena in session.Query<Arena>()
+                              select arena).ToArray();
+
+                foreach (var arena in arenas)
+                {
+                    session.Delete<Arena>(arena);
+                }
+
+                session.SaveChanges();
+            }
         }
     }
 }

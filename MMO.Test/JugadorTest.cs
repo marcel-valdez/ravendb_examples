@@ -19,6 +19,7 @@ namespace MMO.Test
 
             // Assert                        
             Verify.That(target.Nombre).IsNull().Now();
+            Verify.That(target.Estadisticas).IsNotNull().Now();
         }
 
         [TestAttribute]
@@ -45,7 +46,7 @@ namespace MMO.Test
         }
 
         [TestAttribute]
-        public void TestIfItCreatesAnAttackLogAndDamageLog()
+        public void TestIfItProducesACorrectLog()
         {
             // Arrange
             var agresor = new Jugador()
@@ -60,8 +61,7 @@ namespace MMO.Test
             };
 
             // Act
-            RegistroDeAtaque ataque = agresor.Ataca(victima);
-            
+            RegistroDeAtaque ataque = agresor.Ataca(victima);            
 
             // Assert                        
             Verify.That(ataque).IsNotNull().Now();            
@@ -106,7 +106,46 @@ namespace MMO.Test
             target.Hp = 0;
 
             // Assert
-            Verify.That(target.EstaVivo).IsFalse().Now();
+            Verify.That(target.EstaVivo).IsFalse().Now();            
+        }
+
+        [TestAttribute]
+        public void TestIfItUpdatesStatisticsCorrectly()
+        {
+            // Arrange
+            var agresor = new Jugador()
+            {
+                Hp = 100
+            };
+            var victima = new Jugador()
+            {
+                Hp = 100
+            };
+
+            StatsGlobales agresorStats = agresor.Estadisticas;
+            StatsGlobales victimaStats = victima.Estadisticas;
+
+            // Pre-Assert
+            Verify.That(agresorStats.JugadoresMatados).IsEqualTo(0).Now();            
+            Verify.That(victimaStats.JugadoresMatados).IsEqualTo(0).Now();
+            Verify.That(agresorStats.Muertes).IsEqualTo(0).Now();
+            Verify.That(victimaStats.Muertes).IsEqualTo(0).Now();
+            Verify.That(agresorStats.DanoCausado).IsEqualTo(0).Now();
+            Verify.That(victimaStats.DanoCausado).IsEqualTo(0).Now();
+            Verify.That(agresorStats.DanoRecibido).IsEqualTo(0).Now();
+            Verify.That(victimaStats.DanoRecibido).IsEqualTo(0).Now();
+
+            // Act
+            while (victima.EstaVivo)
+            {
+                agresor.Ataca(victima);
+            }
+
+            // Assert
+            Verify.That(agresorStats.JugadoresMatados).IsEqualTo(1).Now();
+            Verify.That(agresorStats.DanoCausado).IsEqualTo(100).Now();
+            Verify.That(victimaStats.Muertes).IsEqualTo(1).Now();
+            Verify.That(victimaStats.DanoRecibido).IsEqualTo(100).Now();
         }
     }
 }
