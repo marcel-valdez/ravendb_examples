@@ -26,7 +26,7 @@ namespace MMO
         {
             get
             {
-                return this.JugadoresVivos.Where(jugador => jugador.EstaVivo).ToArray();
+                return this.Jugadores.Where(jugador => jugador.EstaVivo).ToArray();
             }
         }
     }
