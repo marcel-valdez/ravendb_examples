@@ -19,9 +19,9 @@ namespace MMO.Test
             target = new Jugador();
 
             // Assert
-            Verify.That<List<RegistroDeAtaque>>(target.LogDeAtaque).IsNotNull();
-            Verify.That<List<RegistroDeDano>>(target.LogDeDano).IsNotNull();
-            Verify.That(target.Nombre).IsNull();
+            Verify.That<List<RegistroDeAtaque>>(target.LogDeAtaque).IsNotNull().Now();
+            Verify.That<List<RegistroDeDano>>(target.LogDeDano).IsNotNull().Now();
+            Verify.That(target.Nombre).IsNull().Now();
         }
 
         [TestAttribute]
@@ -70,12 +70,12 @@ namespace MMO.Test
             RegistroDeAtaque ataque = agresor.LogDeAtaque[0];
             RegistroDeDano dano = victima.LogDeDano[0];
 
-            Verify.That(ataque).IsNotNull();
-            Verify.That(dano).IsNotNull();
+            Verify.That(ataque).IsNotNull().Now();
+            Verify.That(dano).IsNotNull().Now();
 
-            Verify.That(ataque.Dano).IsEqualTo(dano.Dano);
-            Verify.That(ataque.VictimaId).IsEqualTo(victima.Id);
-            Verify.That(dano.AggresorId).IsEqualTo(agresor.Id);
+            Verify.That(ataque.Dano).IsEqualTo(dano.Dano).Now();
+            Verify.That(ataque.VictimaId).IsEqualTo(victima.Id).Now();
+            Verify.That(dano.AggresorId).IsEqualTo(agresor.Id).Now();
         }
 
         [TestAttribute]
@@ -95,7 +95,26 @@ namespace MMO.Test
             }
 
             // Assert
-            Verify.That(victima.Hp).IsGreaterThanOrEqual(0);            
+            Verify.That(victima.Hp).IsGreaterThanOrEqual(0).Now();
+        }
+
+        [TestAttribute]
+        public void TestIfItKnowsWhenItsDeadOrAlive()
+        {
+            // Arrange
+            var target = new Jugador()
+            {
+                Hp = 1
+            };
+
+            // Pre-Assert
+            Verify.That(target.EstaVivo).IsTrue().Now();
+
+            // Act
+            target.Hp = 0;
+
+            // Assert
+            Verify.That(target.EstaVivo).IsFalse().Now();
         }
     }
 }

@@ -93,7 +93,9 @@ namespace MMO
             // Puede bloquear hasta 50% del dano.
             double escudo = random.NextDouble() * .5;
             int dano = (int)(fuerza * escudo);
-            
+
+            dano = dano > this.Hp ? this.Hp : dano;
+
             this.Hp -= dano;
 
             this.LogDeDano.Add(new RegistroDeDano()
@@ -105,6 +107,10 @@ namespace MMO
             return dano;
         }
 
+        /// <summary>
+        /// Obtiene un booleano que indica si esta jugador [esta vivo].
+        /// </summary>
+        /// <value><c>true</c> si [esta vivo]; sino, <c>false</c>.</value>
         public bool EstaVivo
         {
             get
