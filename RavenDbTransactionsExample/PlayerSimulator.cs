@@ -78,6 +78,7 @@ namespace RavenDBTransactionExample
                     int victimaIndex = random.Next(0, otros.Length);
                     // Inicia transaccion
                     this.Arena.LogDeAtaque.Add(this.Jugador.Ataca(otros[victimaIndex]));
+                    this.Session.SaveChanges();
                     // Termina transaccion
                 }
             } while (this.Jugador.EstaVivo && !this.Arena.BatallaTerminada);

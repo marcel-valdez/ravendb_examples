@@ -98,13 +98,15 @@ namespace RavenDBTransactionExample.Test
                     PlayerSimulator simulator = ArrangeSimulation(sesion).First();
 
                     // Act
-                    simulator.SimularAsync(10).Wait(1000);
+                    simulator.SimularAsync(10).Wait(1000);                    
                 }
 
                 using (IDocumentSession sesion = dstore.OpenSession())
                 {
                     // Assert
-                    stored = sesion.Query<Arena>().First();
+                    stored = sesion.Query<Arena>()
+                                   .Customize(q => q.WaitForNonStaleResults())
+                                   .First();
                 }
             }
 
@@ -119,44 +121,47 @@ namespace RavenDBTransactionExample.Test
         private static IEnumerable<PlayerSimulator> ArrangeSimulation(IDocumentSession session, int total = 2, int agresors = 1)
         {
             int agresorCounter = 0;
+            List<PlayerSimulator> results = new List<PlayerSimulator>();
+            // Arrange
+            Arena arena = new Arena();
+            for (int i = 0; i < total; i++)
             {
-                // Arrange
-                Arena arena = new Arena();
-                for (int i = 0; i < total; i++)
+                string type = agresorCounter++ < agresors ? "agresor" : "victima";
+                arena.Jugadores.Add(new Jugador()
                 {
-                    string type = agresorCounter++ < agresors ? "agresor" : "victima";
-                    arena.Jugadores.Add(new Jugador()
+                    Id = type + agresorCounter,
+                    Hp = 100
+                });
+
+                if (type == "agresor")
+                {
+                    PlayerSimulator target = new PlayerSimulator(arena.Jugadores[0])
                     {
-                        Id = type + agresorCounter,
-                        Hp = 100
-                    });
+                        Arena = arena,
+                        Session = session
+                    };
 
-                    if (type == "agresor")
-                    {
-                        PlayerSimulator target = new PlayerSimulator(arena.Jugadores[0])
-                        {
-                            Arena = arena,
-                            Session = session
-                        };
-
-                        yield return target;
-                    }
-
-                    session.Store(arena.Jugadores[i]);
-                    session.SaveChanges();
+                    results.Add(target);
                 }
 
-                session.Store(arena);
+                session.Store(arena.Jugadores[i]);
                 session.SaveChanges();
             }
+
+            session.Store(arena);
+            session.SaveChanges();
+
+            return results;
         }
 
         private static DocumentStore GetDocumentStore()
         {
             var documentStore = new EmbeddableDocumentStore
             {
-                RunInMemory = true
+                RunInMemory = true,
             };
+
+            documentStore.Conventions.MaxNumberOfRequestsPerSession = 1000;
 
             documentStore.Initialize();
 
