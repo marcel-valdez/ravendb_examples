@@ -95,14 +95,17 @@ namespace RavenDBTransactionExample.Test
             // Act
             simulator.SimularAsync(10).Wait(1000);
 
+            Arena stored = null;
             using (DocumentStore dstore = GetDocumentStore())
             using (IDocumentSession session = dstore.OpenSession())
             {
                 // Assert
-                Arena stored = session.Query<Arena>().First();
-                Verify.That(stored.LogDeAtaque.Count).IsGreaterThan(2).Now();
-                Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
+                stored = session.Query<Arena>().First();
             }
+
+            Verify.That(stored).IsNotNull().Now();
+            Verify.That(stored.LogDeAtaque.Count).IsGreaterThan(2).Now();
+            Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
 
             // Reset
             ClearDocumentStore();
