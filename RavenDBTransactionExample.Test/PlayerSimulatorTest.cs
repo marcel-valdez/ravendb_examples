@@ -101,7 +101,7 @@ namespace RavenDBTransactionExample.Test
                 // Assert
                 Arena stored = session.Query<Arena>().First();
                 Verify.That(stored.LogDeAtaque.Count).IsGreaterThan(2).Now();
-                Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100);
+                Verify.That(stored.LogDeAtaque.Sum(log => log.Dano)).IsEqualTo(100).Now();
             }
 
             // Reset
