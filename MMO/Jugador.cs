@@ -74,7 +74,7 @@ namespace MMO
         /// <param name="victima">La victima.</param>
         public void Ataca(Jugador victima)
         {
-            int fuerza = random.Next(2, 21);
+            int fuerza = random.Next(1, 21);
             int dano = victima.RecibeAtaque(this, fuerza);
             this.LogDeAtaque.Add(new RegistroDeAtaque()
             {
@@ -92,7 +92,7 @@ namespace MMO
         {
             // Puede bloquear hasta 50% del dano.
             double escudo = random.NextDouble() * .5;
-            int dano = (int)(fuerza * escudo);
+            int dano = (int)Math.Ceiling(fuerza * escudo);
 
             dano = dano > this.Hp ? this.Hp : dano;
 

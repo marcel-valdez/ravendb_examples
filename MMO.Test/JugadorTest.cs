@@ -27,21 +27,24 @@ namespace MMO.Test
         [TestAttribute]
         public void TestIfJugadorPuedeAtacar()
         {
-            // Arrange
-            var agresor = new Jugador();
-            var victima = new Jugador()
+            // Checa idempotencia de la prueba.
+            for (int i = 0; i < 100; i++)
             {
-                Hp = 100
-            };
+                // Arrange
+                var agresor = new Jugador();
+                var victima = new Jugador()
+                {
+                    Hp = 100
+                };
 
-            // Act
-            agresor.Ataca(victima: victima);
+                // Act
+                agresor.Ataca(victima: victima);
 
-            // Assert
-            Console.WriteLine(victima.Hp);            
-            Verify.That(victima.Hp)
-                  .IsLessThan(100)
-                  .Now();            
+                // Assert                
+                Verify.That(victima.Hp)
+                      .IsLessThan(100)
+                      .Now();
+            }
         }
 
         [TestAttribute]
