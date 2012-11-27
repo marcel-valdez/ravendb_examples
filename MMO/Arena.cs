@@ -19,14 +19,30 @@ namespace MMO
         public List<Jugador> Jugadores
         {
             get;
-            set;
+            private set;
         }
 
+        /// <summary>
+        /// Son los jugadores que quedan vivos en la Arena.
+        /// </summary>
+        /// <value>Los jugadores vivos.</value>
         public Jugador[] JugadoresVivos
         {
             get
             {
                 return this.Jugadores.Where(jugador => jugador.EstaVivo).ToArray();
+            }
+        }
+
+        /// <summary>
+        /// Determina si la batalla ha terminado.
+        /// </summary>
+        /// <value><c>true</c> si es una [batalla terminada]; sino, <c>false</c>.</value>
+        public bool BatallaTerminada
+        {
+            get
+            {
+                return this.JugadoresVivos.Length <= 1;
             }
         }
     }

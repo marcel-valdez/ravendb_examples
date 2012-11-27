@@ -38,5 +38,25 @@ namespace MMO.Test
             Verify.That(jugadoresVivos.Length).IsEqualTo(2).Now();
             Verify.That(jugadoresVivos).IsTrueForAll(jugador => jugador.Id == "vivo").Now();
         }
+
+        [TestAttribute]
+        public void TestIfItKnowsWhenTheBattleIsOver()
+        {
+            // Arrange
+            Arena target = new Arena();
+            target.Jugadores.AddRange(new[] {
+                new Jugador { Hp = 1 }, new Jugador { Hp = 1 },                
+            });
+
+            // Pre-Assert
+            Verify.That(target.BatallaTerminada).IsFalse().Now();
+
+            // Act
+            target.JugadoresVivos[0].Hp = 0;
+            target.JugadoresVivos[1].Hp = 0;
+
+            // Assert
+            Verify.That(target.BatallaTerminada).IsTrue().Now();
+        }
     }
 }

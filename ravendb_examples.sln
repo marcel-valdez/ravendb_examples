@@ -7,7 +7,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RavenDbTransactionsExample"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MMO", "MMO\MMO.csproj", "{07F84FDF-D441-486B-BBF0-71E1704BF87F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RavenDBTransactionExample.Test", "RavenDBTransactionExample.Test\RavenDBTransactionExample.Test.csproj", "{174F0744-FB43-4102-A9A3-AC941FA5A6B2}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RavenDbTransactionsExample.Test", "RavenDBTransactionExample.Test\RavenDbTransactionsExample.Test.csproj", "{174F0744-FB43-4102-A9A3-AC941FA5A6B2}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MMO.Test", "MMO.Test\MMO.Test.csproj", "{D6C0BBD4-041A-4B7A-AD36-013EC6D0956B}"
 EndProject
